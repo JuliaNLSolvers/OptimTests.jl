@@ -2,18 +2,29 @@
 language: julia
 os:
   - linux
-  - osx
 julia:
-  - release
+  - 0.5
   - nightly
+addons:
+  apt_packages:
+    - gfortran
+    - libgsl0-dev
 notifications:
   email: false
+sudo: required
 # uncomment the following lines to override the default test script
+before_install:
+    unset DYLD_LIBRARY_PATH;
+    sudo ln -s /usr/lib/gcc/x86_64-linux-gnu/$(gfortran -dumpversion | cut -f1,2 -d.)/libgfortran.so /usr/local/lib; fi
+
+install:
+  - julia -e 'Pkg.clone("https://github.com/optimizers/NLP.jl.git")'
+  - julia -e 'Pkg.clone("https://github.com/optimizers/CUTEst.jl.git")'
+  - julia -E 'Pkg.build("CUTEst");'
+
 #script:
 #  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
 #  - julia -e 'Pkg.clone(pwd()); Pkg.build("OptimTests"); Pkg.test("OptimTests"; coverage=true)'
-after_success:
-  # push coverage results to Coveralls
-  - julia -e 'cd(Pkg.dir("OptimTests")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
+#after_success:
   # push coverage results to Codecov
-  - julia -e 'cd(Pkg.dir("OptimTests")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
+#  - julia -e 'cd(Pkg.dir("OptimTests")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
