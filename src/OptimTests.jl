@@ -34,7 +34,21 @@ function cutest_constr_hess!(nlp, x, λ, h)
     h
 end
 
-function solve_problem(nlp::CUTEstModel, options)
+function solve_problem(nlp::CUTEstModel, method::Optim.Optimizer, options)
+    x0 = nlp.meta.x0
+    d = TwiceDifferentiableFunction(x->obj(nlp, x),
+                                    (x,g)->copy!(g, grad(nlp, x)),
+                                    (x,g)->cutest_fg!(nlp, x, g),
+                                    (x,h)->cutest_hess!(nlp, x, h))
+    if nlp.meta.ncon == 0 && isempty(nlp.meta.ilow) && isempty(nlp.meta.iupp)
+        result = optimize(d, x0, method, options)
+    else
+        return Inf
+    end
+    result
+end
+
+function solve_problem(nlp::CUTEstModel, method::Optim.IPNewton, options)
     x0 = nlp.meta.x0
     d = TwiceDifferentiableFunction(x->obj(nlp, x),
                                     (x,g)->copy!(g, grad(nlp, x)),
@@ -42,7 +56,7 @@ function solve_problem(nlp::CUTEstModel, options)
                                     (x,h)->cutest_hess!(nlp, x, h))
     if nlp.meta.ncon == 0 && isempty(nlp.meta.ilow) && isempty(nlp.meta.iupp)
         result = optimize(d, TwiceDifferentiableConstraintsFunction(Float64[],Float64[]),
-                          x0, IPNewton(), options)
+                          x0, method, options)
     else
         constraints = TwiceDifferentiableConstraintsFunction(
             (x,c)->cons!(nlp, x, c),
@@ -52,16 +66,16 @@ function solve_problem(nlp::CUTEstModel, options)
         if !isinterior(constraints, x0)
             return Inf
         end
-        result = optimize(d, constraints, x0, Optim.IPNewton(), options)
+        result = optimize(d, constraints, x0, Optim.method, options)
     end
     result
 end
 
-function solve_problem(prob::AbstractString, options)
+function solve_problem(prob::AbstractString, method::Optim.Optimizer, options::Optim.OptimizationOptions = Optim.OptimizationOptions())
     nlp = CUTEstModel(prob)
     local result
     try
-        result = solve_problem(nlp, options)
+        result = solve_problem(nlp, method, options)
     finally
         finalize(nlp)
     end
