@@ -2,7 +2,7 @@ module OptimTests
 
 using Optim, CUTEst
 
-export solve_problem, solution_optimum
+export solve_problem, solution_optimum, eqconstraints_violation
 
 function symmetrize!(h)
     for j = 1:size(h,2)
@@ -87,6 +87,18 @@ function solution_optimum(prob::AbstractString)
     m = match(r"SOLTN +([0-9\.\-D]+)", str)
     m == nothing && return NaN
     parse(Float64, replace(m.captures[1], "D", "e"))
+end
+
+function eqconstraints_violation(nlp, x)
+    constraints = TwiceDifferentiableConstraintsFunction(
+        (x,c)->cons!(nlp, x, c),
+        (x,J)->cutest_jacobian!(nlp, x, J),
+        (x,λ,h)->cutest_constr_hess!(nlp, x, λ, h),
+        nlp.meta.lvar, nlp.meta.uvar, nlp.meta.lcon, nlp.meta.ucon)
+        bounds = constraints.bounds
+    c = cons(nlp, x)
+    Δc = [x[bounds.eqx] - bounds.valx; c[bounds.eqc] - constraints.bounds.valc]
+    sumabs2(Δc)
 end
 
 addsif(prob::AbstractString) = endswith(prob, ".SIF") ? prob : string(prob, ".SIF")
