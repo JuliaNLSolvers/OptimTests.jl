@@ -2,7 +2,7 @@ module OptimTests
 
 using Optim, CUTEst
 
-export solve_problem, solution_optimum
+export optim_problem, initial_x, solve_problem, solution_optimum, eqconstraints_violation
 
 function symmetrize!(h)
     for j = 1:size(h,2)
@@ -34,54 +34,86 @@ function cutest_constr_hess!(nlp, x, λ, h)
     h
 end
 
-function solve_problem(nlp::CUTEstModel, method::Optim.Optimizer, options)
-    x0 = nlp.meta.x0
+"""
+    d, constraints = optim_problem(nlp)
+
+Return the objective function and constraint information needed to run
+a problem via Optim. If the problem is unconstrained,
+`constraints` will be `nothing`.
+"""
+function optim_problem(nlp::CUTEstModel)
     d = TwiceDifferentiableFunction(x->obj(nlp, x),
                                     (x,g)->copy!(g, grad(nlp, x)),
                                     (x,g)->cutest_fg!(nlp, x, g),
                                     (x,h)->cutest_hess!(nlp, x, h))
     if nlp.meta.ncon == 0 && isempty(nlp.meta.ilow) && isempty(nlp.meta.iupp)
-        result = optimize(d, x0, method, options)
-    else
-        return Inf
+        return d, nothing
     end
-    result
+    constraints = TwiceDifferentiableConstraintsFunction(
+        (x,c)->cons!(nlp, x, c),
+        (x,J)->cutest_jacobian!(nlp, x, J),
+        (x,λ,h)->cutest_constr_hess!(nlp, x, λ, h),
+        nlp.meta.lvar, nlp.meta.uvar, nlp.meta.lcon, nlp.meta.ucon)
+    d, constraints
 end
 
-function solve_problem(nlp::CUTEstModel, method::Optim.IPNewton, options)
-    x0 = nlp.meta.x0
-    d = TwiceDifferentiableFunction(x->obj(nlp, x),
-                                    (x,g)->copy!(g, grad(nlp, x)),
-                                    (x,g)->cutest_fg!(nlp, x, g),
-                                    (x,h)->cutest_hess!(nlp, x, h))
-    if nlp.meta.ncon == 0 && isempty(nlp.meta.ilow) && isempty(nlp.meta.iupp)
-        result = optimize(d, TwiceDifferentiableConstraintsFunction(Float64[],Float64[]),
-                          x0, method, options)
-    else
-        constraints = TwiceDifferentiableConstraintsFunction(
-            (x,c)->cons!(nlp, x, c),
-            (x,J)->cutest_jacobian!(nlp, x, J),
-            (x,λ,h)->cutest_constr_hess!(nlp, x, λ, h),
-            nlp.meta.lvar, nlp.meta.uvar, nlp.meta.lcon, nlp.meta.ucon)
-        if !isinterior(constraints, x0)
-            return Inf
-        end
-        result = optimize(d, constraints, x0, Optim.method, options)
-    end
-    result
+"""
+    initial_x(nlp) -> x0
+
+Return the starting point for an optimization problem `nlp`.
+"""
+initial_x(nlp::CUTEstModel) = nlp.meta.x0
+
+function solve_problem(d, constraints, x0, method::Optim.ConstrainedOptimizer, options)
+    optimize(d, constraints, x0, method, options)
 end
 
-function solve_problem(prob::AbstractString, method::Optim.Optimizer, options::Optim.OptimizationOptions = Optim.OptimizationOptions())
-    nlp = CUTEstModel(prob)
-    local result
-    try
-        result = solve_problem(nlp, method, options)
-    finally
-        finalize(nlp)
-    end
-    result
+function solve_problem(d, ::Void, x0, method::Optim.ConstrainedOptimizer, options)
+    constraints = TwiceDifferentiableConstraintsFunction(Float64[],Float64[])
+    solve_problem(d, constraints, x0, method, options)
 end
 
+function solve_problem(d, ::Void, x0, method::Optim.Optimizer, options)
+    optimize(d, x0, method, options)
+end
+
+"""
+    solve_problem(nlp, method=IPNewton(), options=OptimizationOptions())
+
+Perform optimization on the specified nonlinear problem
+`nlp`. Optionally specify the Optim `method` and `options`.
+"""
+function solve_problem(nlp, method=IPNewton(), options=OptimizationOptions())
+    x0 = initial_x(nlp)
+    d, constraints = optim_problem(nlp)
+    solve_problem(d, constraints, x0, method, options)
+end
+
+"""
+    eqconstraints_violation(nlp, x)
+    eqconstraints_violation(constraints, x)
+
+Return the L1-norm of the violation of the equality constraints at `x`.
+"""
+function eqconstraints_violation(nlp, x)
+    _, constraints = optim_problem(nlp)
+    eqconstraints_violation(constraints, x)
+end
+function eqconstraints_violation(constraints::Optim.AbstractConstraintsFunction, x)
+    c = constraints.c!(x, Array{eltype(x)}(nconstraints(constraints)))
+    bounds = constraints.bounds
+    Δc = [x[bounds.eqx] - bounds.valx; c[bounds.eqc] - constraints.bounds.valc]
+    sumabs(Δc)
+end
+eqconstraints_violation(::Void, x) = zero(eltype(x))
+
+"""
+    solution_optimum(probname)
+
+Parse the SIF file for the specified CUTEst problem to extract the
+registered minimum. Note there are some problems where this
+information has not been stored (will return `NaN`) or is inaccurate.
+"""
 function solution_optimum(prob::AbstractString)
     str = readstring(joinpath(ENV["MASTSIF"], addsif(prob)))
     m = match(r"SOLTN +([0-9\.\-D]+)", str)
