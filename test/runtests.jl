@@ -49,7 +49,7 @@ for prob in unc_problems
     unc_results[prob] = (Optim.converged(result), result.minimum, solution_optimum(prob), result.iterations, result.f_calls)
     finalize(nlp)
 end
-@test sum(s.second=="failed" for s in unc_results) < length(unc_results)
+@test sum(v=="failed" for v in values(unc_results)) < length(unc_results)
 
 # constrained
 con_problems = CUTEst.select(max_var=100,max_con=100,custom_filter=x->x["derivative_order"]>=2)
@@ -68,7 +68,7 @@ for prob in con_problems
     try
         result = solve_problem(d, constraints, x0, IPNewton(), options)
     catch
-        results[prob] = "failed"
+        con_results[prob] = "failed"
         finalize(nlp)
         continue
     end
@@ -90,4 +90,4 @@ for prob in con_problems
                                 objOptim, objIpopt)
     finalize(nlp)
 end
-@test sum(s.second=="failed" for s in con_results) < length(con_results)
+@test sum(v=="failed" for v in values(con_results)) < length(con_results)
