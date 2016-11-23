@@ -49,6 +49,7 @@ for prob in unc_problems
     unc_results[prob] = (Optim.converged(result), result.minimum, solution_optimum(prob), result.iterations, result.f_calls)
     finalize(nlp)
 end
+@test sum(s.second=="failed" for s in unc_results) < length(unc_results)
 
 # constrained
 con_problems = CUTEst.select(max_var=100,max_con=100,custom_filter=x->x["derivative_order"]>=2)
@@ -89,3 +90,4 @@ for prob in con_problems
                                 objOptim, objIpopt)
     finalize(nlp)
 end
+@test sum(s.second=="failed" for s in con_results) < length(con_results)
