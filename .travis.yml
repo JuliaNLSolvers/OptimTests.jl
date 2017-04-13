@@ -17,9 +17,9 @@ before_install:
     unset DYLD_LIBRARY_PATH;
     sudo ln -s /usr/lib/gcc/x86_64-linux-gnu/$(gfortran -dumpversion | cut -f1,2 -d.)/libgfortran.so /usr/local/lib
 
-install:
-  - julia -e 'Pkg.clone("https://github.com/optimizers/CUTEst.jl.git")'
-  - julia -E 'Pkg.checkout("CUTEst", "develop"); Pkg.build("CUTEst");'
+#install:
+#  - julia -e 'Pkg.clone("https://github.com/optimizers/CUTEst.jl.git")'
+#  - julia -E 'Pkg.checkout("CUTEst", "develop"); Pkg.build("CUTEst");'
 
 #script:
 #  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
