@@ -1,4 +1,4 @@
-using OptimTests, Optim, CUTEst, NLPModels, MathProgBase, Ipopt
+using OptimTests, Optim, CUTEst, NLPModels
 using Base.Test
 
 ipoptdata = Float64[]
@@ -26,7 +26,7 @@ immutable Results
 end
 
 # unconstrained
-options = OptimizationOptions(store_trace=true)
+options = Optim.Options(store_trace=true)
 unc_problems = CUTEst.select(max_var=10,contype = :unc, custom_filter=x->x["derivative_order"]>=2)
 unc_results = Dict{String,Any}()
 for prob in unc_problems
@@ -50,7 +50,7 @@ for prob in unc_problems
     finalize(nlp)
 end
 @test sum(v=="failed" for v in values(unc_results)) < length(unc_results)
-
+#=
 # constrained
 con_problems = CUTEst.select(max_var=100,max_con=100,custom_filter=x->x["derivative_order"]>=2)
 con_results = Dict{String,Any}()
@@ -91,3 +91,4 @@ for prob in con_problems
     finalize(nlp)
 end
 @test sum(v=="failed" for v in values(con_results)) < length(con_results)
+=#

@@ -42,19 +42,21 @@ a problem via Optim. If the problem is unconstrained,
 `constraints` will be `nothing`.
 """
 function optim_problem(nlp::CUTEstModel)
-    d = TwiceDifferentiableFunction(x->obj(nlp, x),
-                                    (x,g)->copy!(g, grad(nlp, x)),
-                                    (x,g)->cutest_fg!(nlp, x, g),
-                                    (x,h)->cutest_hess!(nlp, x, h))
-    if nlp.meta.ncon == 0 && isempty(nlp.meta.ilow) && isempty(nlp.meta.iupp)
+    d = TwiceDifferentiable(x->obj(nlp, x),
+                                    (g, x)->copy!(g, grad(nlp, x)),
+                                    (g, x)->cutest_fg!(nlp, x, g),
+                                    (h, x)->cutest_hess!(nlp, x, h),
+                                    initial_x(nlp))
+#    if nlp.meta.ncon == 0 && isempty(nlp.meta.ilow) && isempty(nlp.meta.iupp)
         return d, nothing
-    end
-    constraints = TwiceDifferentiableConstraintsFunction(
+#    end
+#=    constraints = TwiceDifferentiableConstraintsFunction(
         (x,c)->cons!(nlp, x, c),
         (x,J)->cutest_jacobian!(nlp, x, J),
         (x,λ,h)->cutest_constr_hess!(nlp, x, λ, h),
         nlp.meta.lvar, nlp.meta.uvar, nlp.meta.lcon, nlp.meta.ucon)
     d, constraints
+=#
 end
 
 """
@@ -63,7 +65,7 @@ end
 Return the starting point for an optimization problem `nlp`.
 """
 initial_x(nlp::CUTEstModel) = nlp.meta.x0
-
+#=
 function solve_problem(d, constraints, x0, method::Optim.ConstrainedOptimizer, options)
     optimize(d, constraints, x0, method, options)
 end
@@ -72,11 +74,11 @@ function solve_problem(d, ::Void, x0, method::Optim.ConstrainedOptimizer, option
     constraints = TwiceDifferentiableConstraintsFunction(Float64[],Float64[])
     solve_problem(d, constraints, x0, method, options)
 end
-
+=#
 function solve_problem(d, ::Void, x0, method::Optim.Optimizer, options)
     optimize(d, x0, method, options)
 end
-
+#=
 """
     solve_problem(nlp, method=IPNewton(), options=OptimizationOptions())
 
@@ -106,7 +108,7 @@ function eqconstraints_violation(constraints::Optim.AbstractConstraintsFunction,
     sumabs(Δc)
 end
 eqconstraints_violation(::Void, x) = zero(eltype(x))
-
+=#
 """
     solution_optimum(probname)
 
