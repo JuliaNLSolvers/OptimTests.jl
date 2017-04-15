@@ -1,8 +1,10 @@
 module OptimTests
 
-using Optim, CUTEst
+using Optim, CUTEst, DataFrames, Plots
+export optim_problem, initial_x, solve_problem, solution_optimum, eqconstraints_violation,
+        latest_commit, profiles, save_plots
 
-export optim_problem, initial_x, solve_problem, solution_optimum, eqconstraints_violation
+include("benchmarks.jl")
 
 function symmetrize!(h)
     for j = 1:size(h,2)
