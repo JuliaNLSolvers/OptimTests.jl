@@ -30,6 +30,7 @@ options = Optim.Options(store_trace=true)
 unc_problems = CUTEst.select(max_var=10,contype = :unc, custom_filter=x->x["derivative_order"]>=2)
 unc_results = Dict{String,Any}()
 for prob in unc_problems
+    #if !(endswith(prob, "LS")) && !(prob in ("KOWOSBNE", "SSI"))
     local result
     @show prob
     nlp = CUTEstModel(prob)
@@ -48,6 +49,7 @@ for prob in unc_problems
     end
     unc_results[prob] = (Optim.converged(result), result.minimum, solution_optimum(prob), result.iterations, result.f_calls)
     finalize(nlp)
+#    end
 end
 @test sum(v=="failed" for v in values(unc_results)) < length(unc_results)
 #=
