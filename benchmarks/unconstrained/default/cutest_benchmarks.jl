@@ -14,7 +14,7 @@ cutest_problems = CUTEst.select(max_var=10,contype = :unc, custom_filter=x->x["d
 n = length(default_solvers)
 m = length(cutest_problems)
 f = open(join([version_dir, "cutest_benchmark.csv"], "/"), "w")
-write(f, join(["Problem", "Optimizer", "Converged", "Time", "Minimum", "Iterations", "f_calls", "g_calls", "f_hat", "f_error", "x_error"], ","))
+write(f, join(["Problem", "Optimizer", "Converged", "Time", "Minimum", "Iterations", "f_calls", "g_calls", "h_calls", "f_hat", "f_error", "x_error"], ","))
 write(f, "\n")
 @showprogress 1 "Benchmarking..." for prob in cutest_problems
     @show prob
@@ -45,11 +45,13 @@ write(f, "\n")
                                Optim.iterations(result),
                                Optim.f_calls(result),
                                Optim.g_calls(result)])
+                               Optim.h_calls(result)])
                 push!(xs, Optim.minimizer(result))
             catch
                 push!(output, ([prob,
                                default_names[i],
                                false,
+                               Inf,
                                Inf,
                                Inf,
                                Inf,

@@ -33,7 +33,19 @@ Saves two figures showing performance profiles for the objective error and the
 error in the minimizer across problems and solvers.
 """
 function save_plots(version_dir, testset; tau = 10.0.^(-16:10), legendpos = :bottomright)
-    teststr = testset == :cutest ? "cutest" : "optim"
+
+    if testset == :cutest
+        teststr = "cutest"
+    elseif testset == :optim
+        teststr = "optim"
+    elseif testset == :optim_linesearch
+        teststr = "optim_linesearch"
+    elseif testset == :cutest_linesearch
+        teststr = "cutest_linesearch"
+    else
+        err("Symbol not supported")
+    end
+
     str = version_dir*"/"*teststr*"_benchmark.csv"
     df = readtable(str)
     names = unique(df[:Optimizer])

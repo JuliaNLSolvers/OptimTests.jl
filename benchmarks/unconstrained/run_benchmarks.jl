@@ -44,3 +44,6 @@ default_solvers =[AcceleratedGradientDescent(),
 
 do_benchmarks && include("$(Pkg.dir("OptimTests"))"*"/benchmarks/unconstrained/default/cutest_benchmarks.jl")
 saveplots && save_plots(version_dir, :cutest)
+
+do_benchmarks && include("$(Pkg.dir("OptimTests"))"*"/benchmarks/unconstrained/default/linesearch_benchmark_optim.jl")
+saveplots && save_plots(version_dir, :cutest_linesearch)
