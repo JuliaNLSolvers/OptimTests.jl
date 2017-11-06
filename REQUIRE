@@ -4,3 +4,4 @@ Optim
 CUTEst
 ProgressMeter
 DataFrames
+BenchmarkTools

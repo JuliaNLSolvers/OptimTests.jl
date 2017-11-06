@@ -44,7 +44,7 @@ write(f, "\n")
                                Optim.minimum(result),
                                Optim.iterations(result),
                                Optim.f_calls(result),
-                               Optim.g_calls(result)])
+                               Optim.g_calls(result),
                                Optim.h_calls(result)])
                 push!(xs, Optim.minimizer(result))
             catch
