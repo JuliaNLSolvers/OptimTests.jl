@@ -78,7 +78,7 @@ function solve_problem(d, ::Void, x0, method::Optim.ConstrainedOptimizer, option
     solve_problem(d, constraints, x0, method, options)
 end
 =#
-function solve_problem(d, ::Void, x0, method::Optim.Optimizer, options)
+function solve_problem(d, ::Void, x0, method::Optim.AbstractOptimizer, options)
     optimize(d, x0, method, options)
 end
 #=
